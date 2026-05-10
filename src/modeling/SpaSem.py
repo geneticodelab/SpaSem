@@ -6,8 +6,8 @@ from torch_geometric.data import Batch
 from .esm_wrapper import ESMWrapper
 from .gvp_encoder import GVPGraphEncoder
 
-# 导入我们刚刚新建的 SpatialGlue 模块
-from .spatial_glue_modules import SemanticGATEncoder, SpatialGlueAttention
+
+from .dual_attention_fusion import SemanticGATEncoder, Attention
 
 from torch_geometric.nn import knn_graph
 
@@ -15,13 +15,6 @@ from torch_geometric.nn import knn_graph
 class SpaSem(nn.Module):
     """
     Struct-MIF: Structure-aware Masked Inverse Folding (Dual-Stream Version)
-
-    [架构概览]
-    1. Semantic Tower (Frozen ESM-2): 提取进化语义特征 (Dense [B, L, 1280])
-    2. Spatial Stream (GVP-GNN): 在 3D 物理空间上处理降维后的语义标量与骨架向量 -> [N, 128]
-    3. Semantic Stream (GATConv): 在相同的 3D 物理拓扑上处理高维 ESM 特征 -> [N, 128] (可选)
-    4. Fusion Layer (SpatialGlue Attention): 动态计算跨模态注意力，自适应融合两种特征
-    5. MLM Head: 预测被 Mask 掉的残基
     """
 
     def __init__(
@@ -30,7 +23,7 @@ class SpaSem(nn.Module):
             gvp_node_out_dim: int = 128,  # GVP 和 GAT 的统一输出隐藏层维度
             gvp_layers: int = 6,  # GVP 层数
             dropout: float = 0.1,
-            use_dual_stream: bool = True  # <--- 控制是否启用 SpatialGlue 双流架构
+            use_dual_stream: bool = True
     ):
         super().__init__()
         self.use_dual_stream = use_dual_stream
@@ -60,7 +53,7 @@ class SpaSem(nn.Module):
         )
 
         # ============================================================
-        # 3. 语义流与融合层 (Semantic Stream & Fusion) - SpatialGlue
+        # 3. 语义流与融合层 (Semantic Stream & Fusion)
         # ============================================================
         if self.use_dual_stream:
             # GAT 通道：直接处理 1280 维特征，输出 128 维
@@ -71,7 +64,7 @@ class SpaSem(nn.Module):
             )
 
             # 注意力融合：接收两股 128 维特征，共享权重打分
-            self.fusion_attention = SpatialGlueAttention(
+            self.fusion_attention = Attention(
                 hidden_dim=gvp_node_out_dim
             )
 
@@ -138,7 +131,6 @@ class SpaSem(nn.Module):
         # Step 3: 分流与跨模态注意力融合
         # ------------------------------------------------------------
         if self.use_dual_stream:
-            # === 还原真正的 SpatialGlue 特征图 (Feature Graph) ===
             # 将 1280 维的 ESM 特征看作高维空间中的坐标
             # 动态寻找每个残基在“语义/进化特征空间”中最相似的 15 个邻居
             # batch.batch 是 PyG 自动生成的索引，用来防止它把不同蛋白质的残基连在一起
@@ -154,7 +146,7 @@ class SpaSem(nn.Module):
             # 注意这里传入的是刚刚算出来的 semantic_edge_index，而不是物理的 edge_index
             h_semantic = self.gat_encoder(flat_esm_feats, semantic_edge_index)
 
-            # SpatialGlue 动态注意力融合
+            # 动态注意力融合
             z_fused, alphas = self.fusion_attention(h_spatial, h_semantic)
 
             # 保存权重

@@ -1,4 +1,4 @@
-# 文件名: spatial_glue_modules.py
+# 文件名: dual_attention_fusion.py
 
 import torch
 import torch.nn as nn
@@ -55,11 +55,7 @@ class SemanticGATEncoder(nn.Module):
         return out
 
 
-class SpatialGlueAttention(nn.Module):
-    """
-    跨模态双重注意力融合层 (Cross-Modality Dual-Attention Fusion)
-    借鉴 SpatialGlue 的晚期融合 (Late Fusion) 与权重共享机制。
-    """
+class Attention(nn.Module):
 
     def __init__(self, hidden_dim=128):
         super().__init__()
