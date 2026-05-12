@@ -110,7 +110,7 @@ Extract 3D coordinates and 3Di structural tokens from PDB files to build KNN gra
 
 ```
 PYTHONPATH=. nohup python scripts/1_preprocess_graphs.py \
-    --input_dir /mnt/data/jzhang/data/alphafold_swissprot/v6_extracted \
+    --input_dir /mnt/data/jzhang/data/CATH \
     --output_dir data/processed_graphs \
     --num_workers 16 \
     > preprocess_run.log 2>&1 &
@@ -197,7 +197,7 @@ SpaSem/
 │   │   ├── esm_wrapper.py          # Frozen ESM-2 semantic feature extractor
 │   │   ├── fusion.py               # Multi-modal feature fusion module
 │   │   ├── gvp_encoder.py          # Core GVP (Geometric Vector Perceptron) network
-│   │   ├── spatial_glue_modules.py # spatial_glue_module code
+│   │   ├── dual_attention_fusion.py # dual_attention_fusion code
 │   │   └── SpaSem.py               # Top-level SpaSem main model
 │   ├── loss.py                     # Loss function definitions (MaskedMLMLoss)
 │   └── scoring.py                  # Core logic for zero-shot scoring (Log-Likelihood Ratio)
